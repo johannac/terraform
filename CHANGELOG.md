@@ -9,6 +9,7 @@ BACKWARDS INCOMPATIBILITIES / NOTES:
 
 BUG FIXES:
 
+ * core: Correct the previous fix for a bug causing "attribute not found" messages during destroy, as it was insufficient [GH-6599]
  * provider/aws: Revert security group / vpc security group deprecation that forced new resources [GH-6664]
  * provider/aws: Fix crash in `aws_elasticache_parameter_group` occuring following edits in the console [GH-6687]
 
