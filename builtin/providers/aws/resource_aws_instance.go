@@ -238,6 +238,8 @@ func resourceAwsInstance() *schema.Resource {
 							Computed: true,
 							ForceNew: true,
 						},
+
+						"tags": tagsSchema(),
 					},
 				},
 				Set: func(v interface{}) int {
@@ -417,6 +419,37 @@ func resourceAwsInstanceCreate(d *schema.ResourceData, meta interface{}) error {
 	}
 
 	instance = instanceRaw.(*ec2.Instance)
+
+	// see if we have tags to apply to any block devices
+	bdTags := make(map[string][]*ec2.Tag)
+	if bds, ok := d.Get("ebs_block_device").(*schema.Set); ok {
+		for _, i := range bds.List() {
+			bd := i.(map[string]interface{})
+
+			if tags, ok := bd["tags"]; ok {
+				bdTags[bd["device_name"].(string)] = tagsFromMap(tags.(map[string]interface{}))
+			}
+		}
+	}
+
+	if len(bdTags) > 0 {
+		// we have tags specifically for the instance block devices
+		for _, dm := range instance.BlockDeviceMappings {
+			if tags, ok := bdTags[*dm.DeviceName]; ok {
+				// we need to create a new Resource for this, since Volumes
+				// are handled separately in the AWS API.
+
+				log.Printf("[DEBUG] Creating tags: %s for %s", tags, *dm.DeviceName)
+				_, err := conn.CreateTags(&ec2.CreateTagsInput{
+					Resources: []*string{dm.Ebs.VolumeId},
+					Tags:      tags,
+				})
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
 
 	// Initialize the connection info
 	if instance.PublicIpAddress != nil {
@@ -717,10 +750,6 @@ func readBlockDevices(d *schema.ResourceData, instance *ec2.Instance, conn *ec2.
 		return err
 	}
 
-	if err := d.Set("ebs_block_device", ibds["ebs"]); err != nil {
-		return err
-	}
-
 	// This handles the import case which needs to be defaulted to empty
 	if _, ok := d.GetOk("root_block_device"); !ok {
 		if err := d.Set("root_block_device", []interface{}{}); err != nil {
@@ -796,6 +825,9 @@ func readBlockDevicesFromInstance(instance *ec2.Instance, conn *ec2.EC2) (map[st
 			}
 			if vol.SnapshotId != nil {
 				bd["snapshot_id"] = *vol.SnapshotId
+			}
+			if vol.Tags != nil {
+				bd["tags"] = tagsToMap(vol.Tags)
 			}
 
 			blockDevices["ebs"] = append(blockDevices["ebs"].([]map[string]interface{}), bd)

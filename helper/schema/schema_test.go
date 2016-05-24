@@ -2400,9 +2400,59 @@ func TestSchemaMap_Diff(t *testing.T) {
 
 			Err: false,
 		},
+
+		"map nested in set gets a diff": {
+			Schema: map[string]*Schema{
+				"ebs_block_device": &Schema{
+					Type:     TypeSet,
+					Optional: true,
+					Computed: true,
+					Elem: &Resource{
+						Schema: map[string]*Schema{
+							"tags": &Schema{
+								Type:     TypeMap,
+								Optional: true,
+							},
+						},
+					},
+				},
+			},
+
+			State: &terraform.InstanceState{
+				Attributes: map[string]string{
+					"ebs_block_device.#":              "1",
+					"ebs_block_device.123.tags.#":     "1",
+					"ebs_block_device.123.tags.hello": "world",
+				},
+			},
+
+			Config: map[string]interface{}{
+				"ebs_block_device": []interface{}{
+					map[string]interface{}{
+						"tags": map[string]string{
+							"goodbye": "planet",
+						},
+					},
+				},
+			},
+
+			Diff: &terraform.InstanceDiff{
+				Attributes: map[string]*terraform.ResourceAttrDiff{
+					"ebs_block_device": &terraform.ResourceAttrDiff{
+						Old: "false",
+						New: "true",
+					},
+				},
+			},
+
+			Err: false,
+		},
 	}
 
 	for tn, tc := range cases {
+		if tn != "map nested in set gets a diff" {
+			continue
+		}
 		c, err := config.NewRawConfig(tc.Config)
 		if err != nil {
 			t.Fatalf("#%q err: %s", tn, err)
