@@ -243,8 +243,13 @@ func resourceAwsInstance() *schema.Resource {
 				Set: func(v interface{}) int {
 					var buf bytes.Buffer
 					m := v.(map[string]interface{})
+					buf.WriteString(fmt.Sprintf("%t-", m["delete_on_termination"].(bool)))
 					buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
+					buf.WriteString(fmt.Sprintf("%t-", m["encrypted"].(bool)))
+					buf.WriteString(fmt.Sprintf("%d-", m["iops"].(int)))
 					buf.WriteString(fmt.Sprintf("%s-", m["snapshot_id"].(string)))
+					buf.WriteString(fmt.Sprintf("%d-", m["volume_size"].(int)))
+					buf.WriteString(fmt.Sprintf("%s-", m["volume_type"].(string)))
 					return hashcode.String(buf.String())
 				},
 			},
@@ -721,13 +726,15 @@ func readBlockDevices(d *schema.ResourceData, instance *ec2.Instance, conn *ec2.
 		return err
 	}
 
-	if err := d.Set("ebs_block_device", ibds["ebs"]); err != nil {
-		return err
-	}
-
 	// This handles the import case which needs to be defaulted to empty
 	if _, ok := d.GetOk("root_block_device"); !ok {
 		if err := d.Set("root_block_device", []interface{}{}); err != nil {
+			return err
+		}
+	}
+
+	if ibds["ebs"] != nil {
+		if err := d.Set("ebs_block_device", ibds["ebs"]); err != nil {
 			return err
 		}
 	}
