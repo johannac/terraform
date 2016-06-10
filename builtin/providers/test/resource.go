@@ -1,8 +1,10 @@
 package test
 
 import (
+	"bytes"
 	"fmt"
 
+	"github.com/hashicorp/terraform/helper/hashcode"
 	"github.com/hashicorp/terraform/helper/schema"
 )
 
@@ -136,6 +138,117 @@ func testResourceUpdate(d *schema.ResourceData, meta interface{}) error {
 }
 
 func testResourceDelete(d *schema.ResourceData, meta interface{}) error {
+	d.SetId("")
+	return nil
+}
+
+func computedTestResource() *schema.Resource {
+	return &schema.Resource{
+		Create: computedTestResourceCreate,
+		Read:   computedTestResourceRead,
+		Update: computedTestResourceUpdate,
+		Delete: computedTestResourceDelete,
+		Schema: map[string]*schema.Schema{
+			"ebs_block_device": &schema.Schema{
+				Type:     schema.TypeSet,
+				Optional: true,
+				Computed: true,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"delete_on_termination": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Default:  true,
+							ForceNew: true,
+						},
+
+						"device_name": &schema.Schema{
+							Type:     schema.TypeString,
+							Required: true,
+							ForceNew: true,
+						},
+
+						"encrypted": &schema.Schema{
+							Type:     schema.TypeBool,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+
+						"iops": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+
+						"snapshot_id": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+
+						"volume_size": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+
+						"volume_type": &schema.Schema{
+							Type:     schema.TypeString,
+							Optional: true,
+							Computed: true,
+							ForceNew: true,
+						},
+					},
+				},
+				Set: func(v interface{}) int {
+					var buf bytes.Buffer
+					m := v.(map[string]interface{})
+
+					buf.WriteString(fmt.Sprintf("%t-", m["delete_on_termination"].(bool)))
+					buf.WriteString(fmt.Sprintf("%s-", m["device_name"].(string)))
+					buf.WriteString(fmt.Sprintf("%t-", m["encrypted"].(bool)))
+					buf.WriteString(fmt.Sprintf("%d-", m["iops"].(int)))
+					buf.WriteString(fmt.Sprintf("%s-", m["snapshot_id"].(string)))
+					buf.WriteString(fmt.Sprintf("%d-", m["volume_size"].(int)))
+					buf.WriteString(fmt.Sprintf("%s-", m["volume_type"].(string)))
+
+					return hashcode.String(buf.String())
+				},
+			},
+		},
+	}
+}
+
+func computedTestResourceCreate(d *schema.ResourceData, meta interface{}) error {
+	d.SetId("computedTestId")
+
+	return testResourceRead(d, meta)
+}
+
+func computedTestResourceRead(d *schema.ResourceData, meta interface{}) error {
+	m := make(map[string]interface{})
+	m["device_name"] = "/dev/sdc"
+	m["delete_on_termination"] = true
+	m["volume_size"] = 10
+	m["volume_type"] = "gp2"
+	m["iops"] = 100
+	m["encrypted"] = false
+
+	if err := d.Set("ebs_block_device", []interface{}{m}); err != nil {
+		return err
+	}
+	return nil
+}
+
+func computedTestResourceUpdate(d *schema.ResourceData, meta interface{}) error {
+	return nil
+}
+
+func computedTestResourceDelete(d *schema.ResourceData, meta interface{}) error {
 	d.SetId("")
 	return nil
 }

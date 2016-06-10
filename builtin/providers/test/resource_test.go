@@ -240,3 +240,26 @@ resource "test_resource" "foo" {
 func testAccCheckResourceDestroy(s *terraform.State) error {
 	return nil
 }
+
+func TestResource_computed(t *testing.T) {
+	resource.UnitTest(t, resource.TestCase{
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckResourceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: strings.TrimSpace(`
+resource "test_computed_resource" "foo" {
+  ebs_block_device {
+    device_name = "/dev/sdc"
+    volume_size = 10
+    volume_type = "gp2"
+  }
+}
+				`),
+				Check: func(s *terraform.State) error {
+					return nil
+				},
+			},
+		},
+	})
+}

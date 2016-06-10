@@ -8,7 +8,8 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		ResourcesMap: map[string]*schema.Resource{
-			"test_resource": testResource(),
+			"test_resource":          testResource(),
+			"test_computed_resource": computedTestResource(),
 		},
 		ConfigureFunc: providerConfigure,
 	}

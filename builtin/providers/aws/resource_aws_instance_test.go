@@ -1105,3 +1105,39 @@ resource "aws_instance" "foo" {
 	subnet_id = "${aws_subnet.foo.id}"
 }
 `
+
+const testAccInstanceConfigExtraDiff = `
+resource "aws_instance" "foo" {
+  ami           = "ami-fce3c696"
+  instance_type = "t2.micro"
+  subnet_id     = "subnet-fa611cd0"
+
+  root_block_device {
+    volume_type = "gp2"
+    volume_size = 11
+  }
+
+  tags {
+    TFInstance = "NameTag"
+  }
+
+  ebs_block_device {
+    device_name = "/dev/sdc"
+    volume_size = 10
+    volume_type = "gp2"
+  }
+}
+`
+
+func TestAccAWSInstance_extraDiff(t *testing.T) {
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckInstanceDestroy,
+		Steps: []resource.TestStep{
+			resource.TestStep{
+				Config: testAccInstanceConfigExtraDiff,
+			},
+		},
+	})
+}
