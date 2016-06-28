@@ -8,6 +8,7 @@ import (
 	"github.com/Azure/azure-sdk-for-go/arm/cdn"
 	"github.com/Azure/azure-sdk-for-go/arm/compute"
 	"github.com/Azure/azure-sdk-for-go/arm/network"
+	"github.com/Azure/azure-sdk-for-go/arm/redis"
 	"github.com/Azure/azure-sdk-for-go/arm/resources/resources"
 	"github.com/Azure/azure-sdk-for-go/arm/scheduler"
 	"github.com/Azure/azure-sdk-for-go/arm/storage"
@@ -45,6 +46,8 @@ type ArmClient struct {
 	vnetClient                   network.VirtualNetworksClient
 	routeTablesClient            network.RouteTablesClient
 	routesClient                 network.RoutesClient
+
+	redisClient redis.ManagementClient
 
 	cdnProfilesClient  cdn.ProfilesClient
 	cdnEndpointsClient cdn.EndpointsClient
@@ -316,6 +319,12 @@ func (c *Config) getArmClient() (*ArmClient, error) {
 	dc.Authorizer = spt
 	dc.Sender = autorest.CreateSender(withRequestLogging())
 	client.deploymentsClient = dc
+
+	redc := redis.NewClient(c.SubscriptionID)
+	setUserAgent(&redc.Client)
+	redc.Authorizer = spt
+	redc.Sender = autorest.CreateSender(withRequestLogging())
+	client.redisClient = redc
 
 	return &client, nil
 }
