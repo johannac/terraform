@@ -166,6 +166,30 @@ func (g *Graph) walk(walker GraphWalker) error {
 	// Get the path for logs
 	path := strings.Join(ctx.Path(), ".")
 
+	op := ""
+	if w, ok := walker.(*ContextGraphWalker); ok {
+		switch w.Operation {
+		case 0:
+			op = "walkInvalid"
+		case 1:
+			op = "walkInput"
+		case 2:
+			op = "walkApply"
+		case 3:
+			op = "walkPlan"
+		case 4:
+			op = "walkPlanDestroy"
+		case 5:
+			op = "walkRefresh"
+		case 6:
+			op = "walkValidate"
+		case 7:
+			op = "walkDestroy"
+		case 8:
+			op = "walkImport"
+		}
+	}
+
 	// Walk the graph.
 	var walkFn dag.WalkFunc
 	walkFn = func(v dag.Vertex) (rerr error) {
@@ -195,7 +219,10 @@ func (g *Graph) walk(walker GraphWalker) error {
 			// then callback with the output.
 			log.Printf("[DEBUG] vertex %s.%s: evaluating", path, dag.VertexName(v))
 			tree = walker.EnterEvalTree(v, tree)
+			vertexCtx.SetCurrentVertex(v)
+			vertexCtx.setCurrentOp(op)
 			output, err := Eval(tree, vertexCtx)
+			vertexCtx.SetCurrentVertex(nil)
 			if rerr = walker.ExitEvalTree(v, output, err); rerr != nil {
 				return
 			}

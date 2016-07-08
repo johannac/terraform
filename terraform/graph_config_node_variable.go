@@ -106,6 +106,7 @@ func (n *GraphNodeConfigVariable) Noop(opts *NoopOpts) bool {
 			return false
 		}
 		log.Printf("[DEBUG] Variable has no included destroy edges: noop!")
+
 		return true
 	}
 

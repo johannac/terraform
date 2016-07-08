@@ -4,6 +4,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/dag"
 )
 
 // MockEvalContext is a mock version of EvalContext that can be used
@@ -12,6 +13,10 @@ type MockEvalContext struct {
 	HookCalled bool
 	HookHook   Hook
 	HookError  error
+
+	// TODO: doc
+	currentVertex dag.Vertex
+	currOp        string
 
 	InputCalled bool
 	InputInput  UIInput
@@ -197,4 +202,19 @@ func (c *MockEvalContext) Diff() (*Diff, *sync.RWMutex) {
 func (c *MockEvalContext) State() (*State, *sync.RWMutex) {
 	c.StateCalled = true
 	return c.StateState, c.StateLock
+}
+
+func (ctx *MockEvalContext) SetCurrentVertex(v dag.Vertex) {
+	ctx.currentVertex = v
+}
+
+func (ctx *MockEvalContext) CurrentVertex() dag.Vertex {
+	return ctx.currentVertex
+}
+func (ctx *MockEvalContext) setCurrentOp(op string) {
+	ctx.currOp = op
+}
+
+func (ctx *MockEvalContext) currentOp() string {
+	return ctx.currOp
 }

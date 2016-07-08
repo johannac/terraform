@@ -277,6 +277,14 @@ func (n *graphNodeExpandedResource) EvalTree() EvalNode {
 	return seq
 }
 
+func (n *graphNodeExpandedResource) Noop(opts *NoopOpts) bool {
+	modDiff := opts.Diff.ModuleByPath(n.Path)
+	if modDiff != nil && modDiff.Destroy {
+		return true
+	}
+	return false
+}
+
 func (n *graphNodeExpandedResource) managedResourceEvalNodes(resource *Resource, info *InstanceInfo, resourceConfig *ResourceConfig) []EvalNode {
 	var diff *InstanceDiff
 	var provider ResourceProvider

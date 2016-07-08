@@ -1,6 +1,9 @@
 package terraform
 
 import (
+	"log"
+
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/config"
 )
 
@@ -13,6 +16,7 @@ func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
 	seq := make([]EvalNode, 0, 5)
 	seq = append(seq, &EvalInitProvider{Name: n})
 
+	log.Println("[XXXX] ProviderEvalTree", n, spew.Sdump(config))
 	// Input stuff
 	seq = append(seq, &EvalOpFilter{
 		Ops: []walkOperation{walkInput, walkImport},
@@ -49,8 +53,9 @@ func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
 					Output: &provider,
 				},
 				&EvalInterpolate{
-					Config: config,
-					Output: &resourceConfig,
+					Config:  config,
+					Output:  &resourceConfig,
+					Destroy: true,
 				},
 				&EvalBuildProviderConfig{
 					Provider: n,
@@ -79,8 +84,9 @@ func ProviderEvalTree(n string, config *config.RawConfig) EvalNode {
 					Output: &provider,
 				},
 				&EvalInterpolate{
-					Config: config,
-					Output: &resourceConfig,
+					Config:  config,
+					Output:  &resourceConfig,
+					Destroy: true,
 				},
 				&EvalBuildProviderConfig{
 					Provider: n,
