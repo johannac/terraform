@@ -4,23 +4,12 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/config"
-	"github.com/hashicorp/terraform/dag"
 )
 
 // EvalContext is the interface that is given to eval nodes to execute.
 type EvalContext interface {
 	// Path is the current module path.
 	Path() []string
-
-	// SetCurrentVertex sets the context of the graph vertex we are executing an EvalTree for
-	SetCurrentVertex(v dag.Vertex)
-
-	// CurrentVertex gets the vertex that we are currently executing an EvalTree
-	CurrentVertex() dag.Vertex
-
-	// record a string representation of the curent walk operation for debugging
-	setCurrentOp(op string)
-	currentOp() string
 
 	// Hook is used to call hook methods. The callback is called for each
 	// hook and should return the hook action to take and the error.

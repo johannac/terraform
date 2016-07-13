@@ -1,7 +1,6 @@
 package terraform
 
 import (
-	"fmt"
 	"log"
 	"strings"
 )
@@ -39,9 +38,6 @@ func Eval(n EvalNode, ctx EvalContext) (interface{}, error) {
 		}
 	}
 
-	if err != nil {
-		err = fmt.Errorf("GOT EVAL ERR in %T: %s", ctx.CurrentVertex(), err)
-	}
 	return result, err
 }
 

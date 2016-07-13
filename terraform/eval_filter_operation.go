@@ -1,11 +1,5 @@
 package terraform
 
-import (
-	"log"
-
-	"github.com/davecgh/go-spew/spew"
-)
-
 // EvalNodeOpFilterable is an interface that EvalNodes can implement
 // to be filterable by the operation that is being run on Terraform.
 type EvalNodeOpFilterable interface {
@@ -16,7 +10,6 @@ type EvalNodeOpFilterable interface {
 // include themselves in specific operations.
 func EvalNodeFilterOp(op walkOperation) EvalNodeFilterFunc {
 	return func(n EvalNode) EvalNode {
-		log.Println("[XXXX] EvalNodeFilterOp", op, spew.Sdump(n))
 		include := true
 		if of, ok := n.(EvalNodeOpFilterable); ok {
 			include = of.IncludeInOp(op)
