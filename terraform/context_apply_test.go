@@ -3,6 +3,7 @@ package terraform
 import (
 	"bytes"
 	"fmt"
+	"log"
 	"os"
 	"reflect"
 	"sort"
@@ -4723,10 +4724,12 @@ func TestContext2Apply_destroyNestedModuleWithAttrsReferencingResource(t *testin
 		})
 
 		// First plan and apply a create operation
+		log.Printf("[PAUL] === Starting the create plan!")
 		if _, err := ctx.Plan(); err != nil {
 			t.Fatalf("plan err: %s", err)
 		}
 
+		log.Printf("[PAUL] === Starting the create apply!")
 		state, err = ctx.Apply()
 		if err != nil {
 			t.Fatalf("apply err: %s", err)
@@ -4743,6 +4746,7 @@ func TestContext2Apply_destroyNestedModuleWithAttrsReferencingResource(t *testin
 			},
 		})
 
+		log.Printf("[PAUL] === Starting the destroy plan!")
 		plan, err := ctx.Plan()
 		if err != nil {
 			t.Fatalf("destroy plan err: %s", err)
@@ -4767,6 +4771,7 @@ func TestContext2Apply_destroyNestedModuleWithAttrsReferencingResource(t *testin
 			t.Fatalf("err: %s", err)
 		}
 
+		log.Printf("[PAUL] === Starting the destroy apply!")
 		state, err = ctx.Apply()
 		if err != nil {
 			t.Fatalf("destroy apply err: %s", err)

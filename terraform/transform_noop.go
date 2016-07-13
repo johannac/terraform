@@ -1,6 +1,11 @@
 package terraform
 
 import (
+	"fmt"
+	"sort"
+	"sync"
+
+	"github.com/davecgh/go-spew/spew"
 	"github.com/hashicorp/terraform/dag"
 )
 
@@ -52,13 +57,28 @@ func (t *PruneNoopTransformer) Transform(g *Graph) error {
 		}
 	}
 
+	iExpectThese := make([]string, 0)
+	iSawThese := make([]string, 0)
+	var iSawTheseLock sync.Mutex
+	for _, v := range g.Vertices() {
+		_, ok := v.(GraphNodeNoopPrunable)
+		if ok {
+			iExpectThese = append(iExpectThese, dag.VertexName(v))
+		}
+	}
+	sort.Strings(iExpectThese)
+	fmt.Printf("[PAUL] [PruneNoopTransformer] iExpectThese: %s", spew.Sdump(iExpectThese))
+
 	// Do a depth first walk from the leaves and remove things.
-	return g.ReverseDepthFirstWalk(leaves, func(v dag.Vertex, depth int) error {
+	err := g.ReverseDepthFirstWalk(leaves, func(v dag.Vertex, depth int) error {
 		// We need a prunable
 		pn, ok := v.(GraphNodeNoopPrunable)
 		if !ok {
 			return nil
 		}
+		iSawTheseLock.Lock()
+		iSawThese = append(iSawThese, dag.VertexName(v))
+		iSawTheseLock.Unlock()
 
 		// Start building the noop opts
 		path := g.Path
@@ -101,4 +121,7 @@ func (t *PruneNoopTransformer) Transform(g *Graph) error {
 
 		return nil
 	})
+	sort.Strings(iSawThese)
+	fmt.Printf("[PAUL] [PruneNoopTransformer] iSawThese: %s", spew.Sdump(iSawThese))
+	return err
 }

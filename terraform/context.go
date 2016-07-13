@@ -167,6 +167,14 @@ func (c *Context) Graph(g *ContextGraphOpts) (*Graph, error) {
 	return c.graphBuilder(g).Build(RootModulePath)
 }
 
+func (c *Context) IsDestroy() bool {
+	return c.destroy
+}
+
+func (c *Context) SetDestroy(d bool) {
+	c.destroy = d
+}
+
 // GraphBuilder returns the GraphBuilder that will be used to create
 // the graphs for this context.
 func (c *Context) graphBuilder(g *ContextGraphOpts) GraphBuilder {

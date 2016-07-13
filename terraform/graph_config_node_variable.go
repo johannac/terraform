@@ -83,13 +83,13 @@ func (n *GraphNodeConfigVariable) DestroyEdgeInclude(v dag.Vertex) bool {
 
 // GraphNodeNoopPrunable
 func (n *GraphNodeConfigVariable) Noop(opts *NoopOpts) bool {
-	log.Printf("[DEBUG] Checking variable noop: %s", n.Name())
+	log.Printf("[PAUL] Checking variable noop: %s", n.Name())
 	// If we have no diff, always keep this in the graph. We have to do
 	// this primarily for validation: we want to validate that variable
 	// interpolations are valid even if there are no resources that
 	// depend on them.
 	if opts.Diff == nil || opts.Diff.Empty() {
-		log.Printf("[DEBUG] No diff, not a noop")
+		log.Printf("[PAUL] No diff, not a noop")
 		return false
 	}
 
@@ -101,11 +101,11 @@ func (n *GraphNodeConfigVariable) Noop(opts *NoopOpts) bool {
 	// on by the count of a resource.
 	if modDiff != nil && modDiff.Destroy {
 		if n.hasDestroyEdgeInPath(opts, nil) {
-			log.Printf("[DEBUG] Variable has destroy edge from %s, not a noop",
+			log.Printf("[PAUL] [%s] Variable has destroy edge from %s, not a noop", n.Name(),
 				dag.VertexName(opts.Vertex))
 			return false
 		}
-		log.Printf("[DEBUG] Variable has no included destroy edges: noop!")
+		log.Printf("[PAUL] [%s] Variable has no included destroy edges: noop!", n.Name())
 
 		return true
 	}
@@ -116,11 +116,11 @@ func (n *GraphNodeConfigVariable) Noop(opts *NoopOpts) bool {
 			continue
 		}
 
-		log.Printf("[DEBUG] Found up edge to %s, var is not noop", dag.VertexName(v))
+		log.Printf("[PAUL] Found up edge to %s, var is not noop", dag.VertexName(v))
 		return false
 	}
 
-	log.Printf("[DEBUG] No up edges, treating variable as a noop")
+	log.Printf("[PAUL] No up edges, treating variable as a noop")
 	return true
 }
 
@@ -171,8 +171,9 @@ func (n *GraphNodeConfigVariable) EvalTree() EvalNode {
 	return &EvalSequence{
 		Nodes: []EvalNode{
 			&EvalInterpolate{
-				Config: n.Value,
-				Output: &config,
+				Config:  n.Value,
+				Output:  &config,
+				Comment: "IMA VARIABLE",
 			},
 
 			&EvalVariableBlock{
@@ -247,21 +248,22 @@ func (n *GraphNodeConfigVariableFlat) Path() []string {
 
 func (n *GraphNodeConfigVariableFlat) Noop(opts *NoopOpts) bool {
 	// First look for provider nodes that depend on this variable downstream
+	log.Printf("[PAUL] Checking flat variable noop: %s", n.Name())
 	modDiff := opts.Diff.ModuleByPath(n.ModulePath)
 	if modDiff != nil && modDiff.Destroy {
 		ds, err := opts.Graph.Descendents(n)
 		if err != nil {
-			log.Printf("[ERROR] Error looking up descendents of %s: %s", n.Name(), err)
+			log.Printf("[PAUL] Error looking up descendents of %s: %s", n.Name(), err)
 		} else {
 			for _, d := range ds.List() {
 				if _, ok := d.(GraphNodeProvider); ok {
-					log.Printf("[DEBUG] This variable is depended on by a provider, can't be a noop.")
+					log.Printf("[PAUL] This variable is depended on by a provider, can't be a noop.")
 					return false
 				}
 			}
 		}
 	}
 
-	// Then fall back to existing impl
+	log.Printf("[PAUL] Then fall back to existing impl")
 	return n.GraphNodeConfigVariable.Noop(opts)
 }

@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/hashicorp/terraform/config"
+	"github.com/hashicorp/terraform/dag"
 )
 
 // BuiltinEvalContext is an EvalContext implementation that is used by
@@ -14,6 +15,11 @@ import (
 type BuiltinEvalContext struct {
 	// PathValue is the Path that this context is operating within.
 	PathValue []string
+
+	// TODO: doc
+	currentVertex     dag.Vertex
+	currentVertexLock sync.Mutex
+	currOp            string
 
 	// Interpolater setting below affect the interpolation of variables.
 	//
@@ -42,6 +48,28 @@ type BuiltinEvalContext struct {
 	StateLock           *sync.RWMutex
 
 	once sync.Once
+}
+
+func (ctx *BuiltinEvalContext) SetCurrentVertex(v dag.Vertex) {
+	if v != nil {
+		ctx.currentVertexLock.Lock()
+		ctx.currentVertex = v
+	} else {
+		ctx.currentVertex = v
+		ctx.currentVertexLock.Unlock()
+	}
+}
+
+func (ctx *BuiltinEvalContext) CurrentVertex() dag.Vertex {
+	return ctx.currentVertex
+}
+
+func (ctx *BuiltinEvalContext) setCurrentOp(op string) {
+	ctx.currOp = op
+}
+
+func (ctx *BuiltinEvalContext) currentOp() string {
+	return ctx.currOp
 }
 
 func (ctx *BuiltinEvalContext) Hook(fn func(Hook) (HookAction, error)) error {
@@ -286,7 +314,25 @@ func (ctx *BuiltinEvalContext) CloseProvisioner(n string) error {
 
 func (ctx *BuiltinEvalContext) Interpolate(
 	cfg *config.RawConfig, r *Resource) (*ResourceConfig, error) {
-	if cfg != nil {
+
+	//	// If we're in the process of destroying, we don't want to interpolate,
+	//	// because the variables we are trying to interpolate may have already been
+	//	// pruned.
+	//	destroy := false
+	//	if ctx.DiffValue != nil && cfg != nil && len(cfg.Variables) > 0 && r == nil {
+	//		fmt.Println("[XXXX]", spew.Sdump(cfg), spew.Sdump(ctx))
+	//		for k, v := range cfg.Variables {
+	//			log.Println("[XXXX] VARIABLES:", k, spew.Sdump(v))
+	//		}
+	//		for _, m := range ctx.DiffValue.Modules {
+	//			log.Printf("[XXXX] MODULE: %#v", m)
+	//			if m.Destroy {
+	//				destroy = true
+	//			}
+	//		}
+	//	}
+
+	if cfg != nil { //&& !destroy {
 		scope := &InterpolationScope{
 			Path:     ctx.Path(),
 			Resource: r,

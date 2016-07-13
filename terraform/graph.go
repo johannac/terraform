@@ -195,7 +195,9 @@ func (g *Graph) walk(walker GraphWalker) error {
 			// then callback with the output.
 			log.Printf("[DEBUG] vertex %s.%s: evaluating", path, dag.VertexName(v))
 			tree = walker.EnterEvalTree(v, tree)
+			vertexCtx.SetCurrentVertex(v)
 			output, err := Eval(tree, vertexCtx)
+			vertexCtx.SetCurrentVertex(nil)
 			if rerr = walker.ExitEvalTree(v, output, err); rerr != nil {
 				return
 			}
