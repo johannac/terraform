@@ -121,9 +121,10 @@ The supported built-in functions are:
   * `element(list, index)` - Returns a single element from a list
       at the given index. If the index is greater than the number of
       elements, this function will wrap using a standard mod algorithm.
-      A list is only possible with splat variables from resources with
-      a count greater than one.
-      Example: `element(aws_subnet.foo.*.id, count.index)`
+      This function only works on single-level lists, and will return
+      an error for lists that include nested lists or maps.  Examples:
+      * `element(aws_subnet.foo.*.id, count.index)`
+      * `element(var.list_of_strings, 2)`
 
   * `file(path)` - Reads the contents of a file into the string. Variables
       in this file are _not_ interpolated. The contents of the file are
@@ -149,8 +150,10 @@ The supported built-in functions are:
       `formatlist("instance %v has private ip %v", aws_instance.foo.*.id, aws_instance.foo.*.private_ip)`.
       Passing lists with different lengths to formatlist results in an error.
 
-  * `index(list, elem)` - Finds the index of a given element in a list. Example:
-      `index(aws_instance.foo.*.tags.Name, "foo-test")`
+  * `index(list, elem)` - Finds the index of a given element in a list.
+      This function only works on single-level lists, and will return
+      an error for lists that include nested lists or maps.
+      Example: `index(aws_instance.foo.*.tags.Name, "foo-test")`
 
   * `join(delim, list)` - Joins the list with the delimiter for a resultant string. A list is
       only possible with splat variables from resources with a count
@@ -177,7 +180,9 @@ The supported built-in functions are:
       variable. The `map` parameter should be another variable, such
       as `var.amis`. If `key` does not exist in `map`, the interpolation will
       fail unless you specify a third argument, `default`, which should be a
-      string value to return if no `key` is found in `map.
+      string value to return if no `key` is found in `map. This function
+      only works on single-level maps, and will return an error for maps that
+      include nested lists or maps.
 
   * `lower(string)` - Returns a copy of the string with all Unicode letters mapped to their lower case.
 

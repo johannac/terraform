@@ -928,12 +928,26 @@ func TestInterpolateFuncSplit(t *testing.T) {
 func TestInterpolateFuncLookup(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Vars: map[string]ast.Variable{
-			"var.foo": ast.Variable{
+			"var.foo": {
 				Type: ast.TypeMap,
 				Value: map[string]ast.Variable{
-					"bar": ast.Variable{
+					"bar": {
 						Type:  ast.TypeString,
 						Value: "baz",
+					},
+				},
+			},
+			"var.map_of_lists": ast.Variable{
+				Type: ast.TypeMap,
+				Value: map[string]ast.Variable{
+					"bar": {
+						Type: ast.TypeList,
+						Value: []ast.Variable{
+							{
+								Type:  ast.TypeString,
+								Value: "baz",
+							},
+						},
 					},
 				},
 			},
@@ -969,6 +983,13 @@ func TestInterpolateFuncLookup(t *testing.T) {
 			// Too many args
 			{
 				`${lookup(var.foo, "bar", "", "abc")}`,
+				nil,
+				true,
+			},
+
+			// Cannot lookup into map of lists
+			{
+				`${lookup(var.map_of_lists, "bar")}`,
 				nil,
 				true,
 			},
@@ -1146,9 +1167,10 @@ func interfaceToVariableSwallowError(input interface{}) ast.Variable {
 func TestInterpolateFuncElement(t *testing.T) {
 	testFunction(t, testFunctionConfig{
 		Vars: map[string]ast.Variable{
-			"var.a_list":       interfaceToVariableSwallowError([]string{"foo", "baz"}),
-			"var.a_short_list": interfaceToVariableSwallowError([]string{"foo"}),
-			"var.empty_list":   interfaceToVariableSwallowError([]interface{}{}),
+			"var.a_list":        interfaceToVariableSwallowError([]string{"foo", "baz"}),
+			"var.a_short_list":  interfaceToVariableSwallowError([]string{"foo"}),
+			"var.empty_list":    interfaceToVariableSwallowError([]interface{}{}),
+			"var.a_nested_list": interfaceToVariableSwallowError([]interface{}{[]string{"foo"}, []string{"baz"}}),
 		},
 		Cases: []testFunctionCase{
 			{
@@ -1187,6 +1209,13 @@ func TestInterpolateFuncElement(t *testing.T) {
 			// Too many args
 			{
 				`${element(var.a_list, "0", "2")}`,
+				nil,
+				true,
+			},
+
+			// Only works on single-level lists
+			{
+				`${element(var.a_nested_list, "0")}`,
 				nil,
 				true,
 			},
