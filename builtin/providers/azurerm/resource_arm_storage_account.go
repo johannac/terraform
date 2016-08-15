@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"regexp"
 	"strings"
 	"time"
@@ -131,9 +133,28 @@ func resourceArmStorageAccountCreate(d *schema.ResourceData, meta interface{}) e
 		Tags:     expandTags(tags),
 	}
 
-	_, err := storageClient.Create(resourceGroupName, storageAccountName, opts, make(chan struct{}))
-	if err != nil {
+	errCh := make(chan error, 1)
+	doneCh := make(chan struct{}, 1)
+	cancelCh := make(chan struct{}, 1)
+	interruptCh := make(chan os.Signal, 1)
+	signal.Notify(interruptCh, os.Interrupt)
+	defer signal.Stop(interruptCh)
+	go func() {
+		defer close(doneCh)
+		_, err := storageClient.Create(resourceGroupName, storageAccountName, opts, cancelCh)
+		if err != nil {
+			errCh <- err
+		}
+	}()
+	select {
+	case <-time.After(1 * time.Hour):
+		close(cancelCh)
+	case <-interruptCh:
+		close(cancelCh)
+	case err := <-errCh:
 		return fmt.Errorf("Error creating Azure Storage Account '%s': %s", storageAccountName, err)
+	case <-doneCh:
+		// happy path
 	}
 
 	// The only way to get the ID back apparently is to read the resource again
