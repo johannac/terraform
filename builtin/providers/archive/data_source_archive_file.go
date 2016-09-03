@@ -4,10 +4,12 @@ import (
 	"crypto/sha1"
 	"encoding/hex"
 	"fmt"
-	"github.com/hashicorp/terraform/helper/schema"
 	"io/ioutil"
 	"os"
 	"path"
+
+	"github.com/hashicorp/errwrap"
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
 func dataSourceFile() *schema.Resource {
@@ -15,45 +17,45 @@ func dataSourceFile() *schema.Resource {
 		Read: dataSourceFileRead,
 
 		Schema: map[string]*schema.Schema{
-			"type": &schema.Schema{
+			"type": {
 				Type:     schema.TypeString,
 				Required: true,
 				ForceNew: true,
 			},
-			"source_content": &schema.Schema{
+			"source_content": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"source_file", "source_dir"},
 			},
-			"source_content_filename": &schema.Schema{
+			"source_content_filename": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"source_file", "source_dir"},
 			},
-			"source_file": &schema.Schema{
+			"source_file": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"source_content", "source_content_filename", "source_dir"},
 			},
-			"source_dir": &schema.Schema{
+			"source_dir": {
 				Type:          schema.TypeString,
 				Optional:      true,
 				ForceNew:      true,
 				ConflictsWith: []string{"source_content", "source_content_filename", "source_file"},
 			},
-			"output_path": &schema.Schema{
+			"output_path": {
 				Type:     schema.TypeString,
 				Required: true,
 			},
-			"output_size": &schema.Schema{
+			"output_size": {
 				Type:     schema.TypeInt,
 				Computed: true,
 				ForceNew: true,
 			},
-			"output_sha": &schema.Schema{
+			"output_sha": {
 				Type:        schema.TypeString,
 				Computed:    true,
 				ForceNew:    true,
@@ -87,7 +89,7 @@ func dataSourceFileRead(d *schema.ResourceData, meta interface{}) error {
 
 	sha, err := genFileSha1(outputPath)
 	if err != nil {
-		return fmt.Errorf("could not generate file checksum sha: %s", err)
+		return errwrap.Wrapf("Could not generate file checksum SHA: {{err}}", err)
 	}
 	d.Set("output_sha", sha)
 	d.Set("output_size", fi.Size())
@@ -127,7 +129,7 @@ func archive(d *schema.ResourceData) error {
 func genFileSha1(filename string) (string, error) {
 	data, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return "", fmt.Errorf("could not compute file '%s' checksum: %s", filename, err)
+		return "", errwrap.Wrapf(fmt.Sprintf("could not compute file %q checksum: {{err}}", filename), err)
 	}
 	h := sha1.New()
 	h.Write([]byte(data))
