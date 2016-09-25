@@ -325,6 +325,17 @@ func (m schemaMap) Data(
 	}, nil
 }
 
+// DiffWrapper returns a ResourceDiff for the given diff.
+//
+// The provided state *must* be the state that the given diff was
+// derived from, or else behavior is undefined.
+func (m schemaMap) DiffWrapper(
+	s *terraform.InstanceState,
+	d *terraform.InstanceDiff,
+) (*ResourceDiff, error) {
+	return newResourceDiff(m, s, d), nil
+}
+
 // Diff returns the diff for a resource given the schema map,
 // state, and configuration.
 func (m schemaMap) Diff(

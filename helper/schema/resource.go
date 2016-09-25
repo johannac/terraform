@@ -83,6 +83,19 @@ type Resource struct {
 	Delete DeleteFunc
 	Exists ExistsFunc
 
+	// CheckDiff is an optional callback to validate and/or augment the
+	// diff between the current state and the config. The given
+	// ResourceDiff object already contains the "lexical" diff produced
+	// by comparing the values in state and config, so this callback can
+	// either return an error if the requested change is illegal or
+	// augment the diff to represent side-effects that require resource-
+	// specific knowledge to resolve.
+	//
+	// If a resource customizes its diff then it will be the customized
+	// diff that is ultimately represented by the ResourceData object
+	// passed to "Create", "Update" or "Delete" during the apply phase.
+	CheckDiff CheckDiffFunc
+
 	// Importer is the ResourceImporter implementation for this resource.
 	// If this is nil, then this resource does not support importing. If
 	// this is non-nil, then it supports importing and ResourceImporter
@@ -107,6 +120,9 @@ type UpdateFunc func(*ResourceData, interface{}) error
 
 // See Resource documentation.
 type DeleteFunc func(*ResourceData, interface{}) error
+
+// See Resource documentation.
+type CheckDiffFunc func(*ResourceDiff, interface{}) error
 
 // See Resource documentation.
 type ExistsFunc func(*ResourceData, interface{}) (bool, error)
@@ -175,7 +191,29 @@ func (r *Resource) Apply(
 // ResourceProvider interface.
 func (r *Resource) Diff(
 	s *terraform.InstanceState,
-	c *terraform.ResourceConfig) (*terraform.InstanceDiff, error) {
+	c *terraform.ResourceConfig,
+	meta interface{},
+) (*terraform.InstanceDiff, error) {
+
+	diff, err := schemaMap(r.Schema).Diff(s, c)
+	if err != nil {
+		return diff, err
+	}
+
+	// CheckDiff is not allowed to interfere with "destroy" diffs, since
+	// if is concerned with validating and creating attribute diffs and
+	// there are no useful attribute diffs when we're destroying.
+	if diff.ChangeType() != terraform.DiffDestroy && r.CheckDiff != nil {
+		diffData, err := schemaMap(r.Schema).DiffWrapper(s, diff)
+		if err != nil {
+			return nil, err
+		}
+
+		err = r.CheckDiff(diffData, meta)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return schemaMap(r.Schema).Diff(s, c)
 }
 

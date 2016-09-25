@@ -188,7 +188,7 @@ func (p *Provider) Diff(
 		return nil, fmt.Errorf("unknown resource type: %s", info.Type)
 	}
 
-	return r.Diff(s, c)
+	return r.Diff(s, c, p.meta)
 }
 
 // Refresh implementation of terraform.ResourceProvider interface.
@@ -301,7 +301,7 @@ func (p *Provider) ReadDataDiff(
 		return nil, fmt.Errorf("unknown data source: %s", info.Type)
 	}
 
-	return r.Diff(nil, c)
+	return r.Diff(nil, c, p.Meta)
 }
 
 // RefreshData implementation of terraform.ResourceProvider interface.

@@ -24,6 +24,8 @@ func resourceAwsS3BucketObject() *schema.Resource {
 		Update: resourceAwsS3BucketObjectPut,
 		Delete: resourceAwsS3BucketObjectDelete,
 
+		CheckDiff: resourceAwsS3BucketObjectCheckDiff,
+
 		Schema: map[string]*schema.Schema{
 			"bucket": &schema.Schema{
 				Type:     schema.TypeString,
@@ -275,6 +277,21 @@ func resourceAwsS3BucketObjectDelete(d *schema.ResourceData, meta interface{}) e
 		if err != nil {
 			return fmt.Errorf("Error deleting S3 bucket object: %s", err)
 		}
+	}
+
+	return nil
+}
+
+func resourceAwsS3BucketObjectCheckDiff(d *schema.ResourceDiff, meta interface{}) error {
+	if d.WillUpdate() {
+		// Any change that will cause a call to Update will be a PUT
+		// on the object, which will cause a new version id to be
+		// assigned to versioned objects. This isn't true for
+		// unversioned objects, but the version_id attribute is
+		// not meaningful in that case so it doesn't hurt to
+		// show it as computed in both cases.
+
+		d.SetNewComputed("version_id")
 	}
 
 	return nil
