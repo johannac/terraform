@@ -231,6 +231,22 @@ foo = {
 			},
 			false,
 		},
+
+		{
+			`foo = []`,
+			map[string]interface{}{
+				"foo": []interface{}{},
+			},
+			false,
+		},
+
+		{
+			`{ "foo": [] }`,
+			map[string]interface{}{
+				"foo": []interface{}{},
+			},
+			false,
+		},
 	}
 
 	path := testTempFile(t)
