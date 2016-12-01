@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/lightsail"
 	"github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
@@ -85,6 +86,11 @@ func testAccCheckAWSLightsailInstanceDestroy(s *terraform.State) error {
 		}
 
 		// Verify the error
+		if awsErr, ok := err.(awserr.Error); ok {
+			if awsErr.Code() == "NotFoundException" {
+				return nil
+			}
+		}
 		return err
 	}
 
