@@ -45,26 +45,18 @@ func resourceAwsLightsailInstance() *schema.Resource {
 			},
 
 			// Optional attributes
-
-			// Cannot yet use KeyPair in this resource, and it's not compatible with
-			// aws_key_pair (yet)
-			// We'll need a new aws_lightsail_key_pair resource
 			"key_pair_name": {
-				Type: schema.TypeString,
-				// Optional: true,
-				// ForceNew: true,
-				Computed: true,
+				// Not compatible with aws_key_pair (yet)
+				// We'll need a new aws_lightsail_key_pair resource
+				Type:     schema.TypeString,
+				Optional: true,
+				ForceNew: true,
 				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
 					if old == "LightsailDefaultKeyPair" && new == "" {
 						return true
 					}
 					return false
 				},
-			},
-			"custom_image_name": {
-				Type:     schema.TypeString,
-				Optional: true,
-				ForceNew: true,
 			},
 			"user_data": {
 				Type:     schema.TypeString,
@@ -125,12 +117,9 @@ func resourceAwsLightsailInstanceCreate(d *schema.ResourceData, meta interface{}
 		InstanceNames:    aws.StringSlice([]string{iName}),
 	}
 
-	// if v, ok := d.GetOk("key_pair_name"); ok {
-	// 	req.KeyPairName = aws.String(v.(string))
-	// }
-	// if v, ok := d.GetOk("custom_image_name"); ok {
-	// 	req.CustomImageName = aws.String(v.(string))
-	// }
+	if v, ok := d.GetOk("key_pair_name"); ok {
+		req.KeyPairName = aws.String(v.(string))
+	}
 	// // encoding required?
 	// if v, ok := d.GetOk("user_data"); ok {
 	// 	req.UserData = aws.String(v.(string))
@@ -196,7 +185,6 @@ func resourceAwsLightsailInstanceRead(d *schema.ResourceData, meta interface{}) 
 	d.Set("availability_zone", i.Location.AvailabilityZone)
 	d.Set("blueprint_id", i.BlueprintId)
 	d.Set("bundle_id", i.BundleId)
-	// d.Set("custom_image_name", i.Arn)
 	d.Set("key_pair_name", i.SshKeyName)
 	d.Set("name", i.Name)
 

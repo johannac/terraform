@@ -23,13 +23,7 @@ resource "aws_lightsail_instance" "gitlab_test" {
   availability_zone = "us-east-1b"
   blueprint_id      = "string"
   bundle_id         = "string"
-  custom_image_name = "string"
-  key_pair_name     = "${aws_key_pair.lightsail_ssh.key_name}"
-}
-
-resource "aws_key_pair" "lightsail_ssh" {
-  key_name   = "lightsail-ssh"
-  public_key = "${file("~/.ssh/id_rsa2.pub")}"
+  key_pair_name     = "some_key_name"
 }
 ```
 
@@ -43,8 +37,8 @@ instance. At this time, must be in `us-east-1` region
 * `blueprint_id` - (Required) The ID for a virtual private server image 
 (see list below)
 * `bundle_id` - (Required) The bundle of specification information (see list below)
-* `custom_image_name` - (Required)  name for your custom image
-* `key_pair_name` - (Required) The name of your key pair
+* `key_pair_name` - (Required) The name of your key pair. Created in the
+Lightsail console (cannot use `aws_key_pair` at this time)
 * `user_data` - (Optional) launch script to configure server with additional user data
 
 
@@ -84,7 +78,6 @@ The following attributes are exported in addition to the arguments listed above:
 * `availability_zone` 
 * `blueprint_id` 
 * `bundle_id` 
-* `custom_image_name` 
 * `key_pair_name` 
 * `user_data`
 
