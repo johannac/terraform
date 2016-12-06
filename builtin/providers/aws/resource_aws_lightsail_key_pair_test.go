@@ -37,6 +37,32 @@ func TestAccAWSLightsailKeyPair_basic(t *testing.T) {
 	})
 }
 
+func TestAccAWSLightsailKeyPair_imported(t *testing.T) {
+	var conf lightsail.KeyPair
+	lightsailName := fmt.Sprintf("tf-test-lightsail-%d", acctest.RandInt())
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:      func() { testAccPreCheck(t) },
+		IDRefreshName: "aws_lightsail_key_pair.lightsail_key_pair_test",
+		Providers:     testAccProviders,
+		CheckDestroy:  testAccCheckAWSLightsailKeyPairDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSLightsailKeyPairConfig_imported(lightsailName, testLightsailKeyPairPubKey1),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckAWSLightsailKeyPairExists("aws_lightsail_key_pair.lightsail_key_pair_test", &conf),
+					resource.TestCheckResourceAttrSet("aws_lightsail_key_pair.lightsail_key_pair_test", "arn"),
+					resource.TestCheckResourceAttrSet("aws_lightsail_key_pair.lightsail_key_pair_test", "fingerprint"),
+					resource.TestCheckResourceAttrSet("aws_lightsail_key_pair.lightsail_key_pair_test", "public_key_base64"),
+					resource.TestCheckResourceAttr("aws_lightsail_key_pair.lightsail_key_pair_test", "encrypted_fingerprint", ""),
+					resource.TestCheckResourceAttr("aws_lightsail_key_pair.lightsail_key_pair_test", "encrypted_private_key", ""),
+					resource.TestCheckResourceAttr("aws_lightsail_key_pair.lightsail_key_pair_test", "private_key_base64", ""),
+				),
+			},
+		},
+	})
+}
+
 func TestAccAWSLightsailKeyPair_encrypted(t *testing.T) {
 	var conf lightsail.KeyPair
 	lightsailName := fmt.Sprintf("tf-test-lightsail-%d", acctest.RandInt())
@@ -134,6 +160,20 @@ resource "aws_lightsail_key_pair" "lightsail_key_pair_test" {
 `, lightsailName)
 }
 
+func testAccAWSLightsailKeyPairConfig_imported(lightsailName, key string) string {
+	return fmt.Sprintf(`
+provider "aws" {
+  region = "us-east-1"
+}
+resource "aws_lightsail_key_pair" "lightsail_key_pair_test" {
+  name = "%s"
+	
+	public_key_base64 = "%s"
+
+}
+`, lightsailName, lightsailPubKey)
+}
+
 func testAccAWSLightsailKeyPairConfig_encrypted(lightsailName, key string) string {
 	return fmt.Sprintf(`
 provider "aws" {
@@ -145,7 +185,6 @@ resource "aws_lightsail_key_pair" "lightsail_key_pair_test" {
 	pgp_key = <<EOF
 %s
 EOF
-
 }
 `, lightsailName, key)
 }
