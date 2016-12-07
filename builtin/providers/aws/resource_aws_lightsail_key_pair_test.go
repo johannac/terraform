@@ -29,8 +29,8 @@ func TestAccAWSLightsailKeyPair_basic(t *testing.T) {
 					testAccCheckAWSLightsailKeyPairExists("aws_lightsail_key_pair.lightsail_key_pair_test", &conf),
 					resource.TestCheckResourceAttrSet("aws_lightsail_key_pair.lightsail_key_pair_test", "arn"),
 					resource.TestCheckResourceAttrSet("aws_lightsail_key_pair.lightsail_key_pair_test", "fingerprint"),
-					resource.TestCheckResourceAttrSet("aws_lightsail_key_pair.lightsail_key_pair_test", "public_key_base64"),
-					resource.TestCheckResourceAttrSet("aws_lightsail_key_pair.lightsail_key_pair_test", "private_key_base64"),
+					resource.TestCheckResourceAttrSet("aws_lightsail_key_pair.lightsail_key_pair_test", "public_key"),
+					resource.TestCheckResourceAttrSet("aws_lightsail_key_pair.lightsail_key_pair_test", "private_key"),
 				),
 			},
 		},
@@ -53,10 +53,10 @@ func TestAccAWSLightsailKeyPair_imported(t *testing.T) {
 					testAccCheckAWSLightsailKeyPairExists("aws_lightsail_key_pair.lightsail_key_pair_test", &conf),
 					resource.TestCheckResourceAttrSet("aws_lightsail_key_pair.lightsail_key_pair_test", "arn"),
 					resource.TestCheckResourceAttrSet("aws_lightsail_key_pair.lightsail_key_pair_test", "fingerprint"),
-					resource.TestCheckResourceAttrSet("aws_lightsail_key_pair.lightsail_key_pair_test", "public_key_base64"),
+					resource.TestCheckResourceAttrSet("aws_lightsail_key_pair.lightsail_key_pair_test", "public_key"),
 					resource.TestCheckResourceAttr("aws_lightsail_key_pair.lightsail_key_pair_test", "encrypted_fingerprint", ""),
 					resource.TestCheckResourceAttr("aws_lightsail_key_pair.lightsail_key_pair_test", "encrypted_private_key", ""),
-					resource.TestCheckResourceAttr("aws_lightsail_key_pair.lightsail_key_pair_test", "private_key_base64", ""),
+					resource.TestCheckResourceAttr("aws_lightsail_key_pair.lightsail_key_pair_test", "private_key", ""),
 				),
 			},
 		},
@@ -81,8 +81,8 @@ func TestAccAWSLightsailKeyPair_encrypted(t *testing.T) {
 					resource.TestCheckResourceAttrSet("aws_lightsail_key_pair.lightsail_key_pair_test", "fingerprint"),
 					resource.TestCheckResourceAttrSet("aws_lightsail_key_pair.lightsail_key_pair_test", "encrypted_fingerprint"),
 					resource.TestCheckResourceAttrSet("aws_lightsail_key_pair.lightsail_key_pair_test", "encrypted_private_key"),
-					resource.TestCheckResourceAttrSet("aws_lightsail_key_pair.lightsail_key_pair_test", "public_key_base64"),
-					resource.TestCheckResourceAttr("aws_lightsail_key_pair.lightsail_key_pair_test", "private_key_base64", ""),
+					resource.TestCheckResourceAttrSet("aws_lightsail_key_pair.lightsail_key_pair_test", "public_key"),
+					resource.TestCheckResourceAttr("aws_lightsail_key_pair.lightsail_key_pair_test", "private_key", ""),
 				),
 			},
 		},
@@ -168,8 +168,7 @@ provider "aws" {
 resource "aws_lightsail_key_pair" "lightsail_key_pair_test" {
   name = "%s"
 	
-	public_key_base64 = "%s"
-
+	public_key = "%s"
 }
 `, lightsailName, lightsailPubKey)
 }

@@ -46,28 +46,28 @@ func resourceAwsLightsailKeyPair() *schema.Resource {
 				Computed: true,
 			},
 
+			// fields returned from CreateKey
+			"fingerprint": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+			"public_key": {
+				Type:     schema.TypeString,
+				Computed: true,
+				Optional: true,
+				ForceNew: true,
+			},
+			"private_key": {
+				Type:     schema.TypeString,
+				Computed: true,
+			},
+
 			// encrypted fields if pgp_key is given
 			"encrypted_fingerprint": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
 			"encrypted_private_key": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-
-			// fields returned from CreateKey
-			"fingerprint": {
-				Type:     schema.TypeString,
-				Computed: true,
-			},
-			"public_key_base64": {
-				Type:     schema.TypeString,
-				Computed: true,
-				Optional: true,
-				ForceNew: true,
-			},
-			"private_key_base64": {
 				Type:     schema.TypeString,
 				Computed: true,
 			},
@@ -81,7 +81,7 @@ func resourceAwsLightsailKeyPairCreate(d *schema.ResourceData, meta interface{})
 	kName := d.Get("name").(string)
 	var pubKey string
 	var op *lightsail.Operation
-	if pubKeyInterface, ok := d.GetOk("public_key_base64"); ok {
+	if pubKeyInterface, ok := d.GetOk("public_key"); ok {
 		pubKey = pubKeyInterface.(string)
 	}
 
@@ -109,29 +109,20 @@ func resourceAwsLightsailKeyPairCreate(d *schema.ResourceData, meta interface{})
 			pgpKey = pgpKeyInterface.(string)
 		}
 		if pgpKey != "" {
-			// kb, err := base64.StdEncoding.DecodeString(*resp.PrivateKeyBase64)
-			// if err != nil {
-			// 	return fmt.Errorf("[ERR] Error decoding private key from response: %s", err)
-			// }
-			// ks := string(kb)
-			// log.Printf("\n@@@\nRaw p key:\n%s\n@@@\n", ks)
-			// fingerprint, encrypted, err := encryptPassword(ks, pgpKey)
-			// encrypt with pgp key
-			log.Printf("\n@@@\nRaw p key:\n%s\n@@@\n", *resp.PrivateKeyBase64)
 			fingerprint, encrypted, err := encryptPassword(*resp.PrivateKeyBase64, pgpKey)
 			if err != nil {
 				return err
 			}
+
 			d.Set("encrypted_fingerprint", fingerprint)
 			d.Set("encrypted_private_key", encrypted)
 		} else {
 			// store the private key in state file
-			d.Set("private_key_base64", resp.PrivateKeyBase64)
+			d.Set("private_key", resp.PrivateKeyBase64)
 		}
-		d.Set("public_key_base64", resp.PublicKeyBase64)
+		d.Set("public_key", resp.PublicKeyBase64)
 
 		op = resp.Operation
-		log.Printf("\n@@@\nKey: %s\n@@@\n", resp)
 	} else {
 		// importing key
 		resp, err := conn.ImportKeyPair(&lightsail.ImportKeyPairInput{
@@ -146,7 +137,6 @@ func resourceAwsLightsailKeyPairCreate(d *schema.ResourceData, meta interface{})
 		d.SetId(kName)
 
 		op = resp.Operation
-		log.Printf("\n@@@\nKey: %s\n@@@\n", resp)
 	}
 
 	stateConf := &resource.StateChangeConf{
@@ -183,13 +173,11 @@ func resourceAwsLightsailKeyPairRead(d *schema.ResourceData, meta interface{}) e
 				d.SetId("")
 				return nil
 			}
-			return err
 		}
 		return err
 	}
 
 	d.Set("arn", resp.KeyPair.Arn)
-	// d.Set("created_at", resp.KeyPair.Arn)
 	d.Set("fingerprint", resp.KeyPair.Fingerprint)
 
 	return nil
@@ -206,7 +194,6 @@ func resourceAwsLightsailKeyPairDelete(d *schema.ResourceData, meta interface{})
 	}
 
 	op := resp.Operation
-
 	stateConf := &resource.StateChangeConf{
 		Pending:    []string{"Started"},
 		Target:     []string{"Completed", "Succeeded"},
