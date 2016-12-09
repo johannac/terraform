@@ -120,9 +120,14 @@ func (e *marshalEdge) dot(g *marshalGraph) string {
 		graphName = "root"
 	}
 
-	sourceName := g.vertexByID(e.Source).Name
-	targetName := g.vertexByID(e.Target).Name
-	s := fmt.Sprintf(`"[%s] %s" -> "[%s] %s"`, graphName, sourceName, graphName, targetName)
+	src := g.vertexByID(e.Source)
+	tgt := g.vertexByID(e.Target)
+
+	if src == nil || tgt == nil {
+		return ""
+	}
+
+	s := fmt.Sprintf(`"[%s] %s" -> "[%s] %s"`, graphName, src.Name, graphName, tgt.Name)
 	buf.WriteString(s)
 	writeAttrs(&buf, e.Attrs)
 
@@ -171,7 +176,10 @@ func (g *marshalGraph) writeBody(opts *DotOpts, w *indentWriter) {
 			continue
 		}
 
-		w.Write(v.dot(g))
+		line := v.dot(g)
+		if len(line) > 0 {
+			w.Write(line)
+		}
 	}
 
 	var dotEdges []string
@@ -207,7 +215,10 @@ func (g *marshalGraph) writeBody(opts *DotOpts, w *indentWriter) {
 	}
 
 	for _, e := range g.Edges {
-		dotEdges = append(dotEdges, e.dot(g))
+		eDot := e.dot(g)
+		if eDot != "" {
+			dotEdges = append(dotEdges, eDot)
+		}
 	}
 
 	// srot these again to match the old output
