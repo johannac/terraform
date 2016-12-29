@@ -1,8 +1,10 @@
 package dns
 
 import (
+	"fmt"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/miekg/dns"
 )
 
 // Provider returns a schema.Provider for DNS dynamic updates.
@@ -37,8 +39,10 @@ func Provider() terraform.ResourceProvider {
 		},
 
 		ResourcesMap: map[string]*schema.Resource{
-			"dns_a_record_set": resourceDnsARecordSet(),
-			"dns_ptr_record":   resourceDnsPtrRecord(),
+			"dns_a_record_set":    resourceDnsARecordSet(),
+			"dns_aaaa_record_set": resourceDnsAAAARecordSet(),
+			"dns_cname_record":    resourceDnsCnameRecord(),
+			"dns_ptr_record":      resourceDnsPtrRecord(),
 		},
 
 		ConfigureFunc: configureProvider,
@@ -55,4 +59,56 @@ func configureProvider(d *schema.ResourceData) (interface{}, error) {
 	}
 
 	return config.Client()
+}
+
+func getAVal(record interface{}) (string, error) {
+
+	recstr := record.(*dns.A).String()
+	var name, ttl, class, typ, addr string
+
+	_, err := fmt.Sscanf(recstr, "%s\t%s\t%s\t%s\t%s", &name, &ttl, &class, &typ, &addr)
+	if err != nil {
+		return "", fmt.Errorf("Error parsing record: %s", err)
+	}
+
+	return addr, nil
+}
+
+func getAAAAVal(record interface{}) (string, error) {
+
+	recstr := record.(*dns.AAAA).String()
+	var name, ttl, class, typ, addr string
+
+	_, err := fmt.Sscanf(recstr, "%s\t%s\t%s\t%s\t%s", &name, &ttl, &class, &typ, &addr)
+	if err != nil {
+		return "", fmt.Errorf("Error parsing record: %s", err)
+	}
+
+	return addr, nil
+}
+
+func getCnameVal(record interface{}) (string, error) {
+
+	recstr := record.(*dns.CNAME).String()
+	var name, ttl, class, typ, cname string
+
+	_, err := fmt.Sscanf(recstr, "%s\t%s\t%s\t%s\t%s", &name, &ttl, &class, &typ, &cname)
+	if err != nil {
+		return "", fmt.Errorf("Error parsing record: %s", err)
+	}
+
+	return cname, nil
+}
+
+func getPtrVal(record interface{}) (string, error) {
+
+	recstr := record.(*dns.PTR).String()
+	var name, ttl, class, typ, ptr string
+
+	_, err := fmt.Sscanf(recstr, "%s\t%s\t%s\t%s\t%s", &name, &ttl, &class, &typ, &ptr)
+	if err != nil {
+		return "", fmt.Errorf("Error parsing record: %s", err)
+	}
+
+	return ptr, nil
 }

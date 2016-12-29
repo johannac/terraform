@@ -5,39 +5,42 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform/helper/resource"
+	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/miekg/dns"
 )
 
-func TestAccDnsPtrRecord_basic(t *testing.T) {
+func TestAccDnsAAAARecordSet_basic(t *testing.T) {
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:     func() { testAccPreCheck(t) },
 		Providers:    testAccProviders,
-		CheckDestroy: testAccCheckDnsPtrRecordDestroy,
+		CheckDestroy: testAccCheckDnsAAAARecordSetDestroy,
 		Steps: []resource.TestStep{
 			resource.TestStep{
-				Config: testAccDnsPtrRecord_basic,
+				Config: testAccDnsAAAARecordSet_basic,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckDnsPtrRecordExists(t, "dns_ptr_record.foo", "bar.example.com."),
+					resource.TestCheckResourceAttr("dns_aaaa_record_set.bar", "addresses.#", "2"),
+					testAccCheckDnsAAAARecordSetExists(t, "dns_aaaa_record_set.bar", []interface{}{"fdd5:e282:43b8:5303:dead:beef:cafe:babe", "fdd5:e282:43b8:5303:cafe:babe:dead:beef"}),
 				),
 			},
 			resource.TestStep{
-				Config: testAccDnsPtrRecord_update,
+				Config: testAccDnsAAAARecordSet_update,
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckDnsPtrRecordExists(t, "dns_ptr_record.foo", "baz.example.com."),
+					resource.TestCheckResourceAttr("dns_aaaa_record_set.bar", "addresses.#", "2"),
+					testAccCheckDnsAAAARecordSetExists(t, "dns_aaaa_record_set.bar", []interface{}{"fdd5:e282:43b8:5303:beef:dead:babe:cafe", "fdd5:e282:43b8:5303:babe:cafe:beef:dead"}),
 				),
 			},
 		},
 	})
 }
 
-func testAccCheckDnsPtrRecordDestroy(s *terraform.State) error {
+func testAccCheckDnsAAAARecordSetDestroy(s *terraform.State) error {
 	meta := testAccProvider.Meta()
 	c := meta.(*DNSClient).c
 	srv_addr := meta.(*DNSClient).srv_addr
 	for _, rs := range s.RootModule().Resources {
-		if rs.Type != "dns_ptr_record" {
+		if rs.Type != "dns_aaaa_record_set" {
 			continue
 		}
 
@@ -51,7 +54,7 @@ func testAccCheckDnsPtrRecordDestroy(s *terraform.State) error {
 		rec_fqdn := fmt.Sprintf("%s.%s", rec_name, rec_zone)
 
 		msg := new(dns.Msg)
-		msg.SetQuestion(rec_fqdn, dns.TypePTR)
+		msg.SetQuestion(rec_fqdn, dns.TypeAAAA)
 		r, _, err := c.Exchange(msg, srv_addr)
 		if err != nil {
 			return fmt.Errorf("Error querying DNS record: %s", err)
@@ -64,7 +67,7 @@ func testAccCheckDnsPtrRecordDestroy(s *terraform.State) error {
 	return nil
 }
 
-func testAccCheckDnsPtrRecordExists(t *testing.T, n string, expected string) resource.TestCheckFunc {
+func testAccCheckDnsAAAARecordSetExists(t *testing.T, n string, addr []interface{}) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[n]
 		if !ok {
@@ -88,7 +91,7 @@ func testAccCheckDnsPtrRecordExists(t *testing.T, n string, expected string) res
 		srv_addr := meta.(*DNSClient).srv_addr
 
 		msg := new(dns.Msg)
-		msg.SetQuestion(rec_fqdn, dns.TypePTR)
+		msg.SetQuestion(rec_fqdn, dns.TypeAAAA)
 		r, _, err := c.Exchange(msg, srv_addr)
 		if err != nil {
 			return fmt.Errorf("Error querying DNS record: %s", err)
@@ -97,33 +100,34 @@ func testAccCheckDnsPtrRecordExists(t *testing.T, n string, expected string) res
 			return fmt.Errorf("Error querying DNS record")
 		}
 
-		if len(r.Answer) > 1 {
-			return fmt.Errorf("Error querying DNS record: multiple responses received")
+		addresses := schema.NewSet(schema.HashString, nil)
+		expected := schema.NewSet(schema.HashString, addr)
+		for _, record := range r.Answer {
+			addr, err := getAAAAVal(record)
+			if err != nil {
+				return fmt.Errorf("Error querying DNS record: %s", err)
+			}
+			addresses.Add(addr)
 		}
-		record := r.Answer[0]
-		ptr, err := getPtrVal(record)
-		if err != nil {
-			return fmt.Errorf("Error querying DNS record: %s", err)
-		}
-		if expected != ptr {
-			return fmt.Errorf("DNS record differs: expected %v, found %v", expected, ptr)
+		if !addresses.Equal(expected) {
+			return fmt.Errorf("DNS record differs: expected %v, found %v", expected, addresses)
 		}
 		return nil
 	}
 }
 
-var testAccDnsPtrRecord_basic = fmt.Sprintf(`
-  resource "dns_ptr_record" "foo" {
+var testAccDnsAAAARecordSet_basic = fmt.Sprintf(`
+  resource "dns_aaaa_record_set" "bar" {
     zone = "example.com."
-    name = "r._dns-sd._udp"
-    ptr = "bar.example.com."
+    name = "bar"
+    addresses = ["fdd5:e282:43b8:5303:dead:beef:cafe:babe", "fdd5:e282:43b8:5303:cafe:babe:dead:beef"]
     ttl = 300
   }`)
 
-var testAccDnsPtrRecord_update = fmt.Sprintf(`
-  resource "dns_ptr_record" "foo" {
+var testAccDnsAAAARecordSet_update = fmt.Sprintf(`
+  resource "dns_aaaa_record_set" "bar" {
     zone = "example.com."
-    name = "r._dns-sd._udp"
-    ptr = "baz.example.com."
+    name = "bar"
+    addresses = ["fdd5:e282:43b8:5303:beef:dead:babe:cafe", "fdd5:e282:43b8:5303:babe:cafe:beef:dead"]
     ttl = 300
   }`)

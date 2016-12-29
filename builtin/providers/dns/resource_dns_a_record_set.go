@@ -193,16 +193,3 @@ func resourceDnsARecordSetDelete(d *schema.ResourceData, meta interface{}) error
 
 	return nil
 }
-
-func getAVal(record interface{}) (string, error) {
-
-	recstr := record.(*dns.A).String()
-	var name, ttl, class, typ, addr string
-
-	_, err := fmt.Sscanf(recstr, "%s\t%s\t%s\t%s\t%s", &name, &ttl, &class, &typ, &addr)
-	if err != nil {
-		return "", fmt.Errorf("Error parsing record: %s", err)
-	}
-
-	return addr, nil
-}
