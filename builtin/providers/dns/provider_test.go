@@ -29,8 +29,8 @@ func TestProvider_impl(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
-	v := os.Getenv("DNS_SERVER")
+	v := os.Getenv("DNS_UPDATE_SERVER")
 	if v == "" {
-		t.Fatal("DNS_SERVER must be set for acceptance tests")
+		t.Fatal("DNS_UPDATE_SERVER must be set for acceptance tests")
 	}
 }

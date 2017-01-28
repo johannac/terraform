@@ -17,10 +17,12 @@ Use the navigation to the left to read about the available resources.
 ```
 # Configure the DNS Provider
 provider "dns" {
-    server = "192.168.0.1"
-    key_name = "example.com."
-    key_algorithm = "hmac-md5"
-    key_secret = "3VwZXJzZWNyZXQ="
+    update {
+      server = "192.168.0.1"
+      key_name = "example.com."
+      key_algorithm = "hmac-md5"
+      key_secret = "3VwZXJzZWNyZXQ="
+    }
 }
 
 # Create a DNS A record set
@@ -31,7 +33,9 @@ resource "dns_a_record_set" "www" {
 
 ## Configuration Reference
 
-The following arguments are supported:
+`update` - (Optional) When the provider is used for DNS updates, this block is required. Structure is documented below.
+
+The `update` block supports the following attributes:
 
 * `server` - (Required) The IPv4 address of the DNS server to send updates to.
 * `port` - (Optional) The target UDP port on the server where updates are sent to. Defaults to `53`.

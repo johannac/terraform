@@ -2,6 +2,8 @@ package dns
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 	"github.com/miekg/dns"
@@ -11,30 +13,39 @@ import (
 func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: map[string]*schema.Schema{
-			"server": &schema.Schema{
-				Type:        schema.TypeString,
-				Required:    true,
-				DefaultFunc: schema.EnvDefaultFunc("DNS_SERVER", nil),
-			},
-			"port": &schema.Schema{
-				Type:     schema.TypeInt,
+			"update": &schema.Schema{
+				Type:     schema.TypeList,
+				MaxItems: 1,
 				Optional: true,
-				Default:  53,
-			},
-			"key_name": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("DNS_KEY_NAME", nil),
-			},
-			"key_algorithm": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("DNS_KEY_ALGORITHM", nil),
-			},
-			"key_secret": &schema.Schema{
-				Type:        schema.TypeString,
-				Optional:    true,
-				DefaultFunc: schema.EnvDefaultFunc("DNS_KEY_SECRET", nil),
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"server": &schema.Schema{
+							Type:        schema.TypeString,
+							Required:    true,
+							DefaultFunc: schema.EnvDefaultFunc("DNS_UPDATE_SERVER", nil),
+						},
+						"port": &schema.Schema{
+							Type:     schema.TypeInt,
+							Optional: true,
+							Default:  53,
+						},
+						"key_name": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							DefaultFunc: schema.EnvDefaultFunc("DNS_UPDATE_KEYNAME", nil),
+						},
+						"key_algorithm": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							DefaultFunc: schema.EnvDefaultFunc("DNS_UPDATE_KEYALGORITHM", nil),
+						},
+						"key_secret": &schema.Schema{
+							Type:        schema.TypeString,
+							Optional:    true,
+							DefaultFunc: schema.EnvDefaultFunc("DNS_UPDATE_KEYSECRET", nil),
+						},
+					},
+				},
 			},
 		},
 
@@ -50,12 +61,52 @@ func Provider() terraform.ResourceProvider {
 }
 
 func configureProvider(d *schema.ResourceData) (interface{}, error) {
+
+	var server, keyname, keyalgo, keysecret string
+	var port int
+
+	// if the update block is missing, schema.EnvDefaultFunc is not called
+	if v, ok := d.GetOk("update"); ok {
+		update := v.([]interface{})[0].(map[string]interface{})
+		if val, ok := update["port"]; ok {
+			port = int(val.(int))
+		}
+		if val, ok := update["server"]; ok {
+			server = val.(string)
+		}
+		if val, ok := update["key_name"]; ok {
+			keyname = val.(string)
+		}
+		if val, ok := update["key_algorithm"]; ok {
+			keyalgo = val.(string)
+		}
+		if val, ok := update["key_secret"]; ok {
+			keysecret = val.(string)
+		}
+	} else {
+		if len(os.Getenv("DNS_UPDATE_SERVER")) > 0 {
+			server = os.Getenv("DNS_UPDATE_SERVER")
+		} else {
+			return nil, nil
+		}
+		port = 53
+		if len(os.Getenv("DNS_UPDATE_KEYNAME")) > 0 {
+			keyname = os.Getenv("DNS_UPDATE_KEYNAME")
+		}
+		if len(os.Getenv("DNS_UPDATE_KEYALGORITHM")) > 0 {
+			keyalgo = os.Getenv("DNS_UPDATE_KEYALGORITHM")
+		}
+		if len(os.Getenv("DNS_UPDATE_KEYSECRET")) > 0 {
+			keysecret = os.Getenv("DNS_UPDATE_KEYSECRET")
+		}
+	}
+
 	config := Config{
-		server:    d.Get("server").(string),
-		port:      d.Get("port").(int),
-		keyname:   d.Get("key_name").(string),
-		keyalgo:   d.Get("key_algorithm").(string),
-		keysecret: d.Get("key_secret").(string),
+		server:    server,
+		port:      port,
+		keyname:   keyname,
+		keyalgo:   keyalgo,
+		keysecret: keysecret,
 	}
 
 	return config.Client()
