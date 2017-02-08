@@ -1,7 +1,7 @@
 ---
 layout: "dns"
 page_title: "DNS: dns_a_record_set"
-sidebar_current: "docs-dns-record"
+sidebar_current: "docs-dns-a-record"
 description: |-
   Creates an A type DNS record set.
 ---
