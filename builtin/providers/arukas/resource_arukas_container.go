@@ -174,7 +174,7 @@ func resourceArukasContainerCreate(d *schema.ResourceData, meta interface{}) err
 
 	stateConf := &resource.StateChangeConf{
 		Target:  []string{"running"},
-		Pending: []string{"stopped", "booting"},
+		Pending: []string{"stopped", "booting", "interrupted"},
 		Timeout: client.Timeout,
 		Refresh: func() (interface{}, string, error) {
 			var container API.Container
