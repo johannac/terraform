@@ -562,10 +562,19 @@ func (b byCacheNodeId) Less(i, j int) bool {
 func resourceAwsElasticacheClusterDelete(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).elasticacheconn
 
-	req := &elasticache.DeleteCacheClusterInput{
-		CacheClusterId: aws.String(d.Id()),
-	}
-	_, err := conn.DeleteCacheCluster(req)
+	err := resource.Retry(40*time.Minute, func() *resource.RetryError {
+		_, err := conn.DeleteCacheCluster(&elasticache.DeleteCacheClusterInput{
+			CacheClusterId: aws.String(d.Id()),
+		})
+		if err != nil {
+			// This error may occur whilst the cluster is being snapshotted
+			if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == "InvalidCacheClusterState" {
+				return resource.RetryableError(err)
+			}
+			return resource.NonRetryableError(err)
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}
