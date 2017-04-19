@@ -152,7 +152,7 @@ func updateSqlInjectionMatchSetResource(d *schema.ResourceData, meta interface{}
 			sizeConstraintUpdate := &waf.SqlInjectionMatchSetUpdate{
 				Action: aws.String(ChangeAction),
 				SqlInjectionMatchTuple: &waf.SqlInjectionMatchTuple{
-					FieldToMatch:       expandFieldToMatch(simt["field_to_match"].(*schema.Set).List()[0].(map[string]interface{})),
+					FieldToMatch:       expandFieldToMatch(simt["field_to_match"].(*schema.Set).List()),
 					TextTransformation: aws.String(simt["text_transformation"].(string)),
 				},
 			}

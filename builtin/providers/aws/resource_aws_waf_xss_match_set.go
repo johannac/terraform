@@ -153,7 +153,7 @@ func updateXssMatchSetResource(d *schema.ResourceData, meta interface{}, ChangeA
 			xssMatchTupleUpdate := &waf.XssMatchSetUpdate{
 				Action: aws.String(ChangeAction),
 				XssMatchTuple: &waf.XssMatchTuple{
-					FieldToMatch:       expandFieldToMatch(xmt["field_to_match"].(*schema.Set).List()[0].(map[string]interface{})),
+					FieldToMatch:       expandFieldToMatch(xmt["field_to_match"].(*schema.Set).List()),
 					TextTransformation: aws.String(xmt["text_transformation"].(string)),
 				},
 			}

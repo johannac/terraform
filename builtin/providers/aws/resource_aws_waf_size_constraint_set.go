@@ -160,7 +160,7 @@ func updateSizeConstraintSetResource(d *schema.ResourceData, meta interface{}, C
 			sizeConstraintUpdate := &waf.SizeConstraintSetUpdate{
 				Action: aws.String(ChangeAction),
 				SizeConstraint: &waf.SizeConstraint{
-					FieldToMatch:       expandFieldToMatch(sc["field_to_match"].(*schema.Set).List()[0].(map[string]interface{})),
+					FieldToMatch:       expandFieldToMatch(sc["field_to_match"].(*schema.Set).List()),
 					ComparisonOperator: aws.String(sc["comparison_operator"].(string)),
 					Size:               aws.Int64(int64(sc["size"].(int))),
 					TextTransformation: aws.String(sc["text_transformation"].(string)),
