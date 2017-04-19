@@ -107,6 +107,7 @@ func resourceAwsWafByteMatchSetRead(d *schema.ResourceData, meta interface{}) er
 	}
 
 	d.Set("name", resp.ByteMatchSet.Name)
+	d.Set("byte_match_tuples", flattenWafByteMatchTuples(resp.ByteMatchSet.ByteMatchTuples))
 
 	return nil
 }
@@ -186,11 +187,27 @@ func expandFieldToMatch(d []interface{}) *waf.FieldToMatch {
 	}
 }
 
-func flattenFieldToMatch(fm *waf.FieldToMatch) map[string]interface{} {
+func flattenWafByteMatchTuples(in []*waf.ByteMatchTuple) []interface{} {
+	out := make([]interface{}, len(in), len(in))
+	for i, t := range in {
+		m := make(map[string]interface{}, 0)
+		m["field_to_match"] = flattenFieldToMatch(t.FieldToMatch)
+		m["positional_constraint"] = *t.PositionalConstraint
+		m["target_string"] = string(t.TargetString)
+		m["text_transformation"] = *t.TextTransformation
+
+		out[i] = m
+	}
+	return out
+}
+
+func flattenFieldToMatch(fm *waf.FieldToMatch) []interface{} {
 	m := make(map[string]interface{})
-	m["data"] = *fm.Data
+	if fm.Data != nil {
+		m["data"] = *fm.Data
+	}
 	m["type"] = *fm.Type
-	return m
+	return []interface{}{m}
 }
 
 func diffWafByteMatchSetTuples(oldT, newT []interface{}) []*waf.ByteMatchSetUpdate {
