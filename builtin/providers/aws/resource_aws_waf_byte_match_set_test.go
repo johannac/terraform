@@ -221,6 +221,29 @@ func TestAccAWSWafByteMatchSet_changeTuples(t *testing.T) {
 	})
 }
 
+func TestAccAWSWafByteMatchSet_noTuples(t *testing.T) {
+	var byteMatchSet waf.ByteMatchSet
+	name := fmt.Sprintf("byteMatchSet-%s", acctest.RandString(5))
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:     func() { testAccPreCheck(t) },
+		Providers:    testAccProviders,
+		CheckDestroy: testAccCheckAWSWafByteMatchSetDestroy,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccAWSWafByteMatchSetConfig_noTuples(name),
+				Check: resource.ComposeTestCheckFunc(
+					testAccCheckAWSWafByteMatchSetExists("aws_waf_byte_match_set.byte_set", &byteMatchSet),
+					resource.TestCheckResourceAttr(
+						"aws_waf_byte_match_set.byte_set", "name", name),
+					resource.TestCheckResourceAttr(
+						"aws_waf_byte_match_set.byte_set", "byte_match_tuples.#", "0"),
+				),
+			},
+		},
+	})
+}
+
 func testAccCheckAWSWafByteMatchSetDisappears(v *waf.ByteMatchSet) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		conn := testAccProvider.Meta().(*AWSClient).wafconn
@@ -374,5 +397,12 @@ resource "aws_waf_byte_match_set" "byte_set" {
       type = "URI"
     }
   }
+}`, name)
+}
+
+func testAccAWSWafByteMatchSetConfig_noTuples(name string) string {
+	return fmt.Sprintf(`
+resource "aws_waf_byte_match_set" "byte_set" {
+  name = "%s"
 }`, name)
 }

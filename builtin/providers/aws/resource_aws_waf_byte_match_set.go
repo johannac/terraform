@@ -114,13 +114,16 @@ func resourceAwsWafByteMatchSetRead(d *schema.ResourceData, meta interface{}) er
 func resourceAwsWafByteMatchSetUpdate(d *schema.ResourceData, meta interface{}) error {
 	conn := meta.(*AWSClient).wafconn
 
-	o, n := d.GetChange("byte_match_tuples")
-	oldT, newT := o.(*schema.Set).List(), n.(*schema.Set).List()
+	if d.HasChange("byte_match_tuples") {
+		o, n := d.GetChange("byte_match_tuples")
+		oldT, newT := o.(*schema.Set).List(), n.(*schema.Set).List()
 
-	err := updateByteMatchSetResource(d.Id(), oldT, newT, conn)
-	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error updating ByteMatchSet: {{err}}", err)
+		err := updateByteMatchSetResource(d.Id(), oldT, newT, conn)
+		if err != nil {
+			return errwrap.Wrapf("[ERROR] Error updating ByteMatchSet: {{err}}", err)
+		}
 	}
+
 	return resourceAwsWafByteMatchSetRead(d, meta)
 }
 
@@ -128,14 +131,16 @@ func resourceAwsWafByteMatchSetDelete(d *schema.ResourceData, meta interface{}) 
 	conn := meta.(*AWSClient).wafconn
 
 	oldT := d.Get("byte_match_tuples").(*schema.Set).List()
-	noTuples := []interface{}{}
-	err := updateByteMatchSetResource(d.Id(), oldT, noTuples, conn)
-	if err != nil {
-		return errwrap.Wrapf("[ERROR] Error deleting ByteMatchSet: {{err}}", err)
+	if len(oldT) > 0 {
+		noTuples := []interface{}{}
+		err := updateByteMatchSetResource(d.Id(), oldT, noTuples, conn)
+		if err != nil {
+			return errwrap.Wrapf("[ERROR] Error deleting ByteMatchSet: {{err}}", err)
+		}
 	}
 
 	wr := newWafRetryer(conn, "global")
-	_, err = wr.RetryWithToken(func(token *string) (interface{}, error) {
+	_, err := wr.RetryWithToken(func(token *string) (interface{}, error) {
 		req := &waf.DeleteByteMatchSetInput{
 			ChangeToken:    token,
 			ByteMatchSetId: aws.String(d.Id()),
