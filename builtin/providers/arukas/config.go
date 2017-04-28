@@ -1,9 +1,14 @@
 package arukas
 
 import (
-	API "github.com/arukasio/cli"
+	"fmt"
 	"os"
+	"runtime"
 	"time"
+
+	API "github.com/arukasio/cli"
+	"github.com/hashicorp/terraform/helper/logging"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 const (
@@ -33,7 +38,12 @@ func (c *Config) NewClient() (*ArukasClient, error) {
 	if err != nil {
 		return nil, err
 	}
-	client.UserAgent = "Terraform for Arukas"
+	client.UserAgent = fmt.Sprintf("HashiCorp/1.0 Terraform/%s (%s/%s)",
+		terraform.VersionString(), runtime.GOOS, runtime.GOARCH)
+
+	if logging.IsDebugOrHigher() {
+		client.Debug = true
+	}
 
 	timeout := time.Duration(0)
 	if c.Timeout > 0 {
