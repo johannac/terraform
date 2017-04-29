@@ -184,9 +184,13 @@ func expandFieldToMatch(d map[string]interface{}) *waf.FieldToMatch {
 	}
 }
 
-func flattenFieldToMatch(fm *waf.FieldToMatch) map[string]interface{} {
+func flattenFieldToMatch(fm *waf.FieldToMatch) []interface{} {
 	m := make(map[string]interface{})
-	m["data"] = *fm.Data
-	m["type"] = *fm.Type
-	return m
+	if fm.Data != nil {
+		m["data"] = *fm.Data
+	}
+	if fm.Type != nil {
+		m["type"] = *fm.Type
+	}
+	return []interface{}{m}
 }
