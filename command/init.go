@@ -6,10 +6,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/hashicorp/go-getter"
+	getter "github.com/hashicorp/go-getter"
 	"github.com/hashicorp/terraform/config"
 	"github.com/hashicorp/terraform/config/module"
 	"github.com/hashicorp/terraform/helper/variables"
+	"github.com/hashicorp/terraform/plugin/discovery"
+	"github.com/hashicorp/terraform/terraform"
 )
 
 // InitCommand is a Command implementation that takes a Terraform
@@ -19,7 +21,7 @@ type InitCommand struct {
 }
 
 func (c *InitCommand) Run(args []string) int {
-	var flagBackend, flagGet bool
+	var flagBackend, flagGet, flagGetPlugins bool
 	var flagConfigExtra map[string]interface{}
 
 	args = c.Meta.process(args, false)
@@ -27,6 +29,7 @@ func (c *InitCommand) Run(args []string) int {
 	cmdFlags.BoolVar(&flagBackend, "backend", true, "")
 	cmdFlags.Var((*variables.FlagAny)(&flagConfigExtra), "backend-config", "")
 	cmdFlags.BoolVar(&flagGet, "get", true, "")
+	cmdFlags.BoolVar(&flagGetPlugins, "get-plugins", true, "")
 	cmdFlags.BoolVar(&c.forceInitCopy, "force-copy", false, "suppress prompts about copying state data")
 	cmdFlags.BoolVar(&c.Meta.stateLock, "lock", true, "lock state")
 	cmdFlags.DurationVar(&c.Meta.stateLockTimeout, "lock-timeout", 0, "lock timeout")
@@ -125,6 +128,7 @@ func (c *InitCommand) Run(args []string) int {
 					"Error downloading modules: %s", err))
 				return 1
 			}
+
 		}
 
 		// If we're requesting backend configuration and configure it
@@ -152,6 +156,16 @@ func (c *InitCommand) Run(args []string) int {
 		}
 	}
 
+	// Now that we have loaded all modules, check the module tree for missing providers
+	if flagGetPlugins {
+		err = c.getProviders(path)
+		if err != nil {
+			c.Ui.Error(fmt.Sprintf(
+				"Error getting plugins: %s", err))
+			return 1
+		}
+	}
+
 	// If we outputted information, then we need to output a newline
 	// so that our success message is nicely spaced out from prior text.
 	if header {
@@ -161,6 +175,31 @@ func (c *InitCommand) Run(args []string) int {
 	c.Ui.Output(c.Colorize().Color(strings.TrimSpace(outputInitSuccess)))
 
 	return 0
+}
+
+// load the complete module tree, and fetch any missing providers
+func (c *InitCommand) getProviders(path string) error {
+	mod, err := c.Module(path)
+	if err != nil {
+		return err
+	}
+
+	if err := mod.Validate(); err != nil {
+		return err
+	}
+
+	requirements := terraform.ModuleTreeDependencies(mod, nil).AllPluginRequirements()
+	missing := c.missingProviders(requirements)
+
+	dst := c.pluginDir()
+	for provider, reqd := range missing {
+		err := discovery.GetProvider(dst, provider, reqd)
+		// TODO: return all errors
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (c *InitCommand) copySource(dst, src, pwd string) error {
@@ -225,6 +264,8 @@ Options:
                        prompts.
 
   -get=true            Download any modules for this configuration.
+
+  -get-plugins=true    Download any missing plugins for this configuration.
 
   -input=true          Ask for input if necessary. If false, will error if
                        input was required.
