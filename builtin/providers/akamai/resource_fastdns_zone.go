@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"fmt"
 	"log"
+	"strconv"
+	"strings"
 
 	"github.com/akamai/AkamaiOPEN-edgegrid-golang/configdns-v1"
 	"github.com/hashicorp/terraform/helper/hashcode"
@@ -324,6 +326,25 @@ func resourceFastDNSZone() *schema.Resource {
 			"ns": {
 				Type:     schema.TypeSet,
 				Optional: true,
+				Set:      nsHashFunction,
+				DiffSuppressFunc: func(k, old, new string, d *schema.ResourceData) bool {
+					if k == "ns.#" && new == "0" {
+						return true
+					}
+
+					ns := d.Get("ns").(*schema.Set).List()
+					ids := strings.Split(k, ".")
+					id, e := strconv.Atoi(ids[1])
+					if e == nil {
+						for _, v := range ns {
+							i := nsHashFunction(v)
+							if i == id {
+								return true
+							}
+						}
+					}
+					return false
+				},
 				Elem: &schema.Resource{
 					Schema: map[string]*schema.Schema{
 						"name": {
@@ -744,6 +765,9 @@ func resourceFastDNSZoneCreate(d *schema.ResourceData, meta interface{}) error {
 	// Give terraform the ID
 	d.SetId(fmt.Sprintf("%s-%s-%s", zone.Token, zone.Zone.Name, hostname))
 
+	// assign each of the record sets to the resource data
+	marshalResourceData(d, zone)
+
 	return nil
 }
 
@@ -1143,4 +1167,17 @@ func resourceFastDNSZoneExists(d *schema.ResourceData, meta interface{}) (bool, 
 	log.Printf("[INFO] [Akamai FastDNS] Searching for zone [%s]", hostname)
 	zone, err := dns.GetZone(hostname)
 	return zone != nil, err
+}
+
+func nsHashFunction(v interface{}) int {
+	var buf bytes.Buffer
+	m := v.(map[string]interface{})
+	buf.WriteString(fmt.Sprintf(
+		"%s-%s-%s-%s",
+		m["name"],
+		m["ttl"],
+		m["active"],
+		m["target"],
+	))
+	return hashcode.String(buf.String())
 }
