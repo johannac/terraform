@@ -24,14 +24,5 @@ func TestProvider(t *testing.T) {
 }
 
 func testAccPreCheck(t *testing.T) {
-	// if v := os.Getenv("ALICLOUD_ACCESS_KEY"); v == "" {
-	//  t.Fatal("ALICLOUD_ACCESS_KEY must be set for acceptance tests")
-	// }
-	// if v := os.Getenv("ALICLOUD_SECRET_KEY"); v == "" {
-	//  t.Fatal("ALICLOUD_SECRET_KEY must be set for acceptance tests")
-	// }
-	// if v := os.Getenv("ALICLOUD_REGION"); v == "" {
-	//  log.Println("[INFO] Test: Using cn-beijing as test region")
-	//  os.Setenv("ALICLOUD_REGION", "cn-beijing")
-	// }
+
 }
